@@ -69,17 +69,14 @@ class PM25_UART(PM25):
 
     def _read_into_buffer(self):
         while True:
-            b = self._uart.read(1)
-            if not b:
-                print(b)  ### <<< debug
+            sof = self._uart.read(2)
+            if not sof:
                 raise RuntimeError("Unable to read from PM2.5 (no start of frame)")
-            if b[0] == 0x42:
+            if sof == b'BM':
                 break
-        self._buffer[0] = b[0]  # first byte and start of frame
+        self._buffer[0:2] = sof  # SoF bytes
 
-        remain = self._uart.read(31)
-        if not remain or len(remain) != 31:
+        data = self._uart.read(30)
+        if not data or not len(data) == 30:
             raise RuntimeError("Unable to read from PM2.5 (incomplete frame)")
-        for i in range(31):
-            self._buffer[i + 1] = remain[i]
-        # print([hex(i) for i in self._buffer])
+        self._buffer[2:] = data
